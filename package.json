@@ -6,10 +6,12 @@
     "start": "next start"
   },
   "dependencies": {
+    "@sanity/image-url": "^1.0.1",
     "@thirdweb-dev/react": "^2.7.0",
     "@thirdweb-dev/sdk": "^2.3.38",
     "ethers": "^5.7.0",
     "next": "latest",
+    "next-sanity": "^0.8.2",
     "react": "18.1.0",
     "react-dom": "18.1.0"
   },
