@@ -1,14 +1,17 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   useAddress,
   useDisconnect,
   useMetamask,
   useWalletConnect,
+  useNFTDrop,
+  useContract,
 } from "@thirdweb-dev/react";
 import { GetServerSideProps } from "next";
 import { sanityClient, urlFor } from "../../sanity";
 import { Collection } from "../../typings";
 import Link from "next/link";
+import { BigNumber } from "ethers";
 
 interface Props {
   collection: Collection;
@@ -16,9 +19,33 @@ interface Props {
 
 function NFTDropPage({ collection }: Props) {
   const connectWithMetamask = useMetamask();
-  const connectWithWalletConnect = useWalletConnect();
   const address = useAddress();
   const disconnect = useDisconnect();
+
+  const [claimedSupply, setClaimedSupply] = useState<number>(0);
+  const [totalSupply, settotalSupply] = useState<BigNumber>();
+  const [price, setPrice] = useState<string>();
+  const [loading, setLoading] = useState<boolean>(false);
+  const nftDrop = useNFTDrop(collection?.address);
+
+  useEffect(() => {
+    if (!nftDrop) return;
+
+    const fetchNFTDropData = async () => {
+      setLoading(true);
+      const claimed = await nftDrop.getAllClaimed();
+      const total = await nftDrop.totalSupply();
+      const claimConditions = await nftDrop.claimConditions.getAll();
+
+      setPrice(claimConditions?.[0].currencyMetadata.displayValue);
+      setClaimedSupply(claimed.length);
+      settotalSupply(total);
+
+      setLoading(false);
+    };
+
+    fetchNFTDropData();
+  }, [nftDrop]);
 
   return (
     <div className="flex h-screen flex-col md:grid md:grid-cols-10">
@@ -34,9 +61,9 @@ function NFTDropPage({ collection }: Props) {
 
           <div className="text-center p-5 space-y-2">
             <h1 className="text-4xl text-white font-bold ">
-              {collection.title}
+              {collection?.title}
             </h1>
-            <h2 className="text-xl text-gray-300">{collection.description}</h2>
+            <h2 className="text-xl text-gray-300">{collection?.description}</h2>
           </div>
         </div>
       </div>
@@ -66,18 +93,47 @@ function NFTDropPage({ collection }: Props) {
         <div className="flex flex-1 flex-col items-center space-y-6 text-center lg:space-y-0 md:justify-center">
           <img
             className="w-80 object-cover pb-10 lg:h-40"
-            src={urlFor(collection.mainImage).url()}
+            src={urlFor(collection?.mainImage).url()}
             alt=""
           />
 
           <h1 className="text-3xl font-bold lg:text-5xl lg:font-extrabold">
-            {collection.nftCollectionName}
+            {collection?.nftCollectionName}
           </h1>
-          <p className="pt-2 text-green-500 text-xl">13/21 NFTs Claimed</p>
+          {loading ? (
+            <p className="pt-2 text-green-500 text-xl animate-pulse">
+              Loading supply count ...
+            </p>
+          ) : (
+            <p className="pt-2 text-green-500 text-xl">
+              {claimedSupply}/{totalSupply?.toString()} NFTs Claimed
+            </p>
+          )}
+
+          {loading && (
+            <img
+              className="w-8- h-80 object-contain"
+              src="https://cdn.hackernoon.com/images/0*4Gzjgh9Y7Gu8KEtZ.gif"
+              alt=""
+            ></img>
+          )}
         </div>
         <div>
-          <button className="px-4 py-2 rounded-full w-full bg-rose-400 text-white font-bold lg:px-5 lg:py-3 lg:text-base">
-            Mint NFT (0.01 ETH)
+          <button
+            disabled={
+              loading || claimedSupply === totalSupply?.toNumber() || !address
+            }
+            className="px-4 py-2 rounded-full w-full bg-rose-400 text-white font-bold lg:px-5 lg:py-3 lg:text-base disabled:bg-gray-400"
+          >
+            {loading ? (
+              <>Loading</>
+            ) : claimedSupply === totalSupply?.toNumber() ? (
+              <>SOLD OUT</>
+            ) : !address ? (
+              <>Sign in to mint.</>
+            ) : (
+              <span className="font-bold"> Mint NFT ({price} ETH)</span>
+            )}
           </button>
         </div>
       </div>
