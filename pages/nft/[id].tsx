@@ -12,7 +12,8 @@ import { sanityClient, urlFor } from "../../sanity";
 import { Collection } from "../../typings";
 import Link from "next/link";
 import { BigNumber } from "ethers";
-import { NFTMetadata, NFTMetadataOwner } from "@thirdweb-dev/sdk";
+import { NFTMetadata } from "@thirdweb-dev/sdk";
+import toast, { Toaster } from "react-hot-toast";
 
 interface Props {
   collection: Collection;
@@ -52,6 +53,15 @@ function NFTDropPage({ collection }: Props) {
   const mintNFT = () => {
     if (!nftDrop || !address) return;
     setLoading(true);
+    const notification = toast.loading("Minting...", {
+      style: {
+        background: "white",
+        color: "green",
+        fontWeight: "bolder",
+        fontSize: "17px",
+        padding: "20px",
+      },
+    });
 
     const quantity = 1;
 
@@ -63,16 +73,38 @@ function NFTDropPage({ collection }: Props) {
         const claimedNFT = await txData[0].data();
 
         setClaimedNFT(claimedNFT?.metadata);
-        console.log(claimedNFT?.metadata.image);
+        toast("LETSGOOOOO, You minted!!!!", {
+          duration: 8000,
+          style: {
+            background: "green",
+            color: "white",
+            fontWeight: "bolder",
+            fontSize: "17px",
+            padding: "20px",
+          },
+        });
       })
-      .catch((err) => console.log(err))
+      .catch((err) => {
+        console.log(err);
+        toast("Whoops", {
+          style: {
+            background: "red",
+            color: "white",
+            fontWeight: "bolder",
+            fontSize: "17px",
+            padding: "20px",
+          },
+        });
+      })
       .finally(() => {
         setLoading(false);
+        toast.dismiss(notification);
       });
   };
 
   return (
     <div className="flex h-screen flex-col md:grid md:grid-cols-10">
+      <Toaster position="bottom-center" />
       <div className="bg-gradient-to-br from-green-300 to-green-700 md:col-span-4">
         <div className="flex flex-col items-center justify-center py-2 lg:min-h-screen">
           <div className="bg-gradient-to-br from-yellow-400 to-purple-500 p-2 rounded-xl">
