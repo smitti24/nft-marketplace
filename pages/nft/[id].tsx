@@ -12,6 +12,7 @@ import { sanityClient, urlFor } from "../../sanity";
 import { Collection } from "../../typings";
 import Link from "next/link";
 import { BigNumber } from "ethers";
+import { NFTMetadata, NFTMetadataOwner } from "@thirdweb-dev/sdk";
 
 interface Props {
   collection: Collection;
@@ -26,6 +27,7 @@ function NFTDropPage({ collection }: Props) {
   const [totalSupply, settotalSupply] = useState<BigNumber>();
   const [price, setPrice] = useState<string>();
   const [loading, setLoading] = useState<boolean>(false);
+  const [claimedNFT, setClaimedNFT] = useState<NFTMetadata>();
   const nftDrop = useNFTDrop(collection?.address);
 
   useEffect(() => {
@@ -47,6 +49,28 @@ function NFTDropPage({ collection }: Props) {
     fetchNFTDropData();
   }, [nftDrop]);
 
+  const mintNFT = () => {
+    if (!nftDrop || !address) return;
+    setLoading(true);
+
+    const quantity = 1;
+
+    nftDrop
+      ?.claimTo(address, quantity)
+      .then(async (txData) => {
+        const reciept = txData[0].receipt;
+        const claimedTokenId = txData[0].id;
+        const claimedNFT = await txData[0].data();
+
+        setClaimedNFT(claimedNFT?.metadata);
+        console.log(claimedNFT?.metadata.image);
+      })
+      .catch((err) => console.log(err))
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   return (
     <div className="flex h-screen flex-col md:grid md:grid-cols-10">
       <div className="bg-gradient-to-br from-green-300 to-green-700 md:col-span-4">
@@ -54,7 +78,11 @@ function NFTDropPage({ collection }: Props) {
           <div className="bg-gradient-to-br from-yellow-400 to-purple-500 p-2 rounded-xl">
             <img
               className="w-44 rounded-xl object-cover lg:h-96 lg:w-72"
-              src={urlFor(collection.previewImage).url()}
+              src={
+                claimedNFT
+                  ? claimedNFT?.image?.toString()
+                  : urlFor(collection.previewImage).url()
+              }
               alt=""
             />
           </div>
@@ -120,6 +148,7 @@ function NFTDropPage({ collection }: Props) {
         </div>
         <div>
           <button
+            onClick={mintNFT}
             disabled={
               loading || claimedSupply === totalSupply?.toNumber() || !address
             }
